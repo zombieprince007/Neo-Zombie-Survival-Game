@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: game
+    description: Matchmaking and game session operations
+  - name: leaderboard
+    description: Public player rankings
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /sessions:
+    post:
+      operationId: createSession
+      tags: [game]
+      summary: Create a game session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionInput"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionCreated"
+        "400":
+          description: Invalid session request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sessions/{sessionId}:
+    get:
+      operationId: getSession
+      tags: [game]
+      summary: Get a live session snapshot
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Session snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get the public leaderboard
+      responses:
+        "200":
+          description: Ranked player list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 4
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    SessionInput:
+      type: object
+      properties:
+        playerName:
+          type: string
+          minLength: 2
+          maxLength: 24
+        role:
+          type: string
+          enum: [survivor, killer]
+      required: [playerName, role]
+    SessionCreated:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        playerId:
+          type: string
+        role:
+          type: string
+          enum: [survivor, killer]
+        playerName:
+          type: string
+      required: [sessionId, playerId, role, playerName]
+    SessionPlayer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [survivor, killer]
+        health:
+          type: integer
+        status:
+          type: string
+          enum: [healthy, injured, critical, hooked, dead, hunting, ready]
+        connected:
+          type: boolean
+      required: [id, name, role, health, status, connected]
+    Objective:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [generator, gate]
+        progress:
+          type: number
+        completed:
+          type: boolean
+      required: [id, type, progress, completed]
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [waiting, hunting, completed]
+        maxPlayers:
+          type: integer
+        playerCount:
+          type: integer
+        gameTime:
+          type: integer
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionPlayer"
+        objectives:
+          type: array
+          items:
+            $ref: "#/components/schemas/Objective"
+      required: [id, status, maxPlayers, playerCount, gameTime, players, objectives]
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+          enum: [survivor, killer]
+        score:
+          type: integer
+        rankName:
+          type: string
+          enum: [S, A, B, C, D]
+        escapes:
+          type: integer
+        eliminations:
+          type: integer
+      required: [rank, name, role, score, rankName, escapes, eliminations]
+
